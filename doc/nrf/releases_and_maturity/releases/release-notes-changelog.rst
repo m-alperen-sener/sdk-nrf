@@ -200,6 +200,8 @@ nRF Desktop
   * The dependencies of the :kconfig:option:`CONFIG_DESKTOP_BLE_LOW_LATENCY_LOCK` Kconfig option.
     The option can be enabled even when the Bluetooth controller is not enabled as part of the application that uses :ref:`nrf_desktop_ble_latency`.
   * The :ref:`nrf_desktop_bootloader` and :ref:`nrf_desktop_bootloader_background_dfu` sections in the nRF Desktop documentation to explicitly mention the supported DFU configurations.
+  * The :ref:`nrf_desktop_usb_state` to use :c:func:`usb_hid_set_proto_code` function to set the HID Boot Interface protocol code.
+    The ``CONFIG_USB_HID_BOOT_PROTOCOL`` Kconfig option was removed and dedicated API needs to be used instead.
 
 Thingy:53: Matter weather station
 ---------------------------------
