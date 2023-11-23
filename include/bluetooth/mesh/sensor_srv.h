@@ -91,7 +91,7 @@ struct bt_mesh_sensor_srv {
 			BT_MESH_SENSOR_OP_CADENCE_STATUS,
 			BT_MESH_SENSOR_MSG_MAXLEN_CADENCE_STATUS))];
 	/** Composition data model pointer. */
-	struct bt_mesh_model *model;
+	const struct bt_mesh_model *model;
 };
 
 /** @brief Publish a sensor value.
@@ -112,7 +112,7 @@ struct bt_mesh_sensor_srv {
  *
  *  @return 0 on success, or (negative) error code otherwise.
  */
-int bt_mesh_sensor_srv_pub(struct bt_mesh_sensor_srv *srv,
+int bt_mesh_sensor_srv_pub(const struct bt_mesh_sensor_srv *srv,
 			   struct bt_mesh_msg_ctx *ctx,
 			   struct bt_mesh_sensor *sensor,
 			   const struct sensor_value *value);
@@ -137,7 +137,7 @@ int bt_mesh_sensor_srv_pub(struct bt_mesh_sensor_srv *srv,
  *                         not configured.
  *  @retval -EAGAIN        The device has not been provisioned.
  */
-int bt_mesh_sensor_srv_sample(struct bt_mesh_sensor_srv *srv,
+int bt_mesh_sensor_srv_sample(const struct bt_mesh_sensor_srv *srv,
 			      struct bt_mesh_sensor *sensor);
 
 /** @cond INTERNAL_HIDDEN */
