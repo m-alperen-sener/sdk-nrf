@@ -2,6 +2,12 @@
 #
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
+config EXTERNAL_CONFIGURED_NETCORE
+	bool
+	default y
+	select NETCORE_REMOTE_NRF5340_CPUNET if NET_CORE_BOARD = "nrf5340dk_nrf5340_cpunet"
+	depends on NET_CORE_IMAGE_HCI_IPC # Zephyr Kconfig enabling HCI IPC on netcore
+
 config SUPPORT_NETCORE
 	bool
 	default y if ($(BOARD) = "nrf5340dk_nrf5340_cpuapp" || $(BOARD) = "nrf5340dk_nrf5340_cpuapp_ns" || $(BOARD) = "thingy53_nrf5340_cpuapp" || $(BOARD) = "thingy53_nrf5340_cpuapp_ns" || $(BOARD) = "nrf7002dk_nrf5340_cpuapp" || $(BOARD) = "nrf7002dk_nrf5340_cpuapp_ns")
@@ -59,7 +65,7 @@ choice NETCORE
 	default NETCORE_802154_RPMSG if NRF_DEFAULT_802154 && NETCORE_REMOTE_BOARD_NAME != ""
 	default NETCORE_MULTIPROTOCOL_RPMSG if NRF_DEFAULT_MULTIPROTOCOL && NETCORE_REMOTE_BOARD_NAME != ""
 	default NETCORE_NONE
-	depends on SUPPORT_NETCORE
+	depends on SUPPORT_NETCORE && !EXTERNAL_CONFIGURED_NETCORE
 
 config NETCORE_NONE
 	bool "None"
@@ -120,17 +126,17 @@ config NETCORE_EMPTY_DOMAIN_APP
 	bool
 	default y if NETCORE_EMPTY_BOARD != ""
 
+if NETCORE_HCI_IPC || NET_CORE_IMAGE_HCI_IPC
+
 config NETCORE_HCI_IPC_NAME
 	string
 	default "hci_ipc"
-	depends on NETCORE_HCI_IPC
 	help
 	  Image name of radio hci rpmsg.
 
 config NETCORE_HCI_IPC_BOARD
 	string
 	default NETCORE_REMOTE_BOARD_NAME
-	depends on NETCORE_HCI_IPC
 	help
 	  Remote board when building this sample.
 	  If not set, the board given to sysbuild is used.
@@ -142,6 +148,8 @@ config NETCORE_HCI_IPC_DOMAIN
 config NETCORE_HCI_IPC_DOMAIN_APP
 	bool
 	default y if NETCORE_HCI_IPC_BOARD != ""
+
+endif
 
 config NETCORE_RPC_HOST_NAME
 	string
