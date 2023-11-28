@@ -39,18 +39,30 @@ static struct bt_enocean_device mock_enocean_device = {
 	}
 };
 
-static struct bt_mesh_model mock_model = {
+static struct bt_mesh_model_rt_ctx mock_model_rt_ctx = {
 	.user_data = &srv
 };
 
-static struct bt_mesh_model mock_lvl_model = {
-	.pub = &srv.buttons[0].lvl.pub,
-	.user_data = &srv.buttons[0].lvl,
+static const struct bt_mesh_model mock_model = {
+	.rt = &mock_model_rt_ctx
 };
 
-static struct bt_mesh_model mock_onoff_model = {
-	.pub = &srv.buttons[0].onoff.pub,
+static struct bt_mesh_model_rt_ctx mock_lvl_model_rt_ctx = {
+	.user_data = &srv.buttons[0].lvl
+};
+
+static const struct bt_mesh_model mock_lvl_model = {
+	.pub = &srv.buttons[0].lvl.pub,
+	.rt = &mock_lvl_model_rt_ctx,
+};
+
+static struct bt_mesh_model_rt_ctx mock_onoff_model_rt_ctx = {
 	.user_data = &srv.buttons[0].onoff
+};
+
+static const struct bt_mesh_model mock_onoff_model = {
+	.pub = &srv.buttons[0].onoff.pub,
+	.rt = &mock_onoff_model_rt_ctx
 };
 
 static const struct bt_enocean_callbacks *enocean_cbs;
