@@ -1,9 +1,9 @@
 python:
-  version: 3.9.6
+  version: 3.9.18
 git:
   version: 2.37.3
 cmake:
-  version: 3.20.5
+  version: 3.20.6
 ninja:
   version: 1.10.2
 gperf:
