@@ -1418,14 +1418,16 @@ static struct usbd_context *usb_init_next_usbd_init(void)
 	USBD_DESC_MANUFACTURER_DEFINE(manufacturer, CONFIG_DESKTOP_DEVICE_MANUFACTURER);
 	USBD_DESC_PRODUCT_DEFINE(product, CONFIG_DESKTOP_DEVICE_PRODUCT);
 	USBD_DESC_SERIAL_NUMBER_DEFINE(serial_number);
+	USBD_DESC_CONFIG_DEFINE(fs_cfg_desc, "FS Configuration");
+	USBD_DESC_CONFIG_DEFINE(hs_cfg_desc, "HS Configuration");
 
 	/* Maximum power consumption of a device: 250 * 2 mA = 500 mA. */
 	static const uint8_t max_power = 250;
 	static const uint8_t attributes = IS_ENABLED(CONFIG_DESKTOP_USB_REMOTE_WAKEUP) ?
 					  (USB_SCD_REMOTE_WAKEUP) : (0);
 
-	USBD_CONFIGURATION_DEFINE(fs_config, attributes, max_power);
-	USBD_CONFIGURATION_DEFINE(hs_config, attributes, max_power);
+	USBD_CONFIGURATION_DEFINE(fs_config, attributes, max_power, &fs_cfg_desc);
+	USBD_CONFIGURATION_DEFINE(hs_config, attributes, max_power, &hs_cfg_desc);
 
 	if (!usbd_can_detect_vbus(&usbd)) {
 		LOG_ERR("USBD controller cannot detect VBUS state change");
