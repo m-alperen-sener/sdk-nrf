@@ -69,9 +69,9 @@ static int do_udp_server_start(uint16_t port)
 
 	/* Open socket */
 	if (proxy.sec_tag == INVALID_SEC_TAG) {
-		ret = socket(proxy.family, SOCK_DGRAM, IPPROTO_UDP);
+		ret = zsock_socket(proxy.family, SOCK_DGRAM, IPPROTO_UDP);
 	} else {
-		ret = socket(proxy.family, SOCK_DGRAM, IPPROTO_DTLS_1_2);
+		ret = zsock_socket(proxy.family, SOCK_DGRAM, IPPROTO_DTLS_1_2);
 	}
 	if (ret < 0) {
 		LOG_ERR("socket() failed: %d", -errno);
@@ -94,8 +94,8 @@ static int do_udp_server_start(uint16_t port)
 		const int tls_native = 1;
 
 		/* Must be the first socket option to set. */
-		ret = setsockopt(proxy.sock, SOL_TLS, TLS_NATIVE, &tls_native,
-					sizeof(tls_native));
+		ret = zsock_setsockopt(proxy.sock, SOL_TLS, TLS_NATIVE,
+				       &tls_native, sizeof(tls_native));
 		if (ret) {
 			LOG_ERR("setsockopt(TLS_NATIVE) error: %d", -errno);
 			ret = -errno;
@@ -103,8 +103,8 @@ static int do_udp_server_start(uint16_t port)
 		}
 		sec_tag_t sec_tag_list[1] = { proxy.sec_tag };
 
-		ret = setsockopt(proxy.sock, SOL_TLS, TLS_SEC_TAG_LIST, sec_tag_list,
-				 sizeof(sec_tag_t));
+		ret = zsock_setsockopt(proxy.sock, SOL_TLS, TLS_SEC_TAG_LIST,
+				       sec_tag_list, sizeof(sec_tag_t));
 		if (ret) {
 			LOG_ERR("setsockopt(TLS_SEC_TAG_LIST) error: %d", -errno);
 			ret = -errno;
@@ -112,7 +112,8 @@ static int do_udp_server_start(uint16_t port)
 		}
 		int tls_role = TLS_DTLS_ROLE_SERVER;
 
-		ret = setsockopt(proxy.sock, SOL_TLS, TLS_DTLS_ROLE, &tls_role, sizeof(int));
+		ret = zsock_setsockopt(proxy.sock, SOL_TLS, TLS_DTLS_ROLE,
+				       &tls_role, sizeof(int));
 		if (ret) {
 			LOG_ERR("setsockopt(TLS_DTLS_ROLE) error: %d", -errno);
 			ret = -errno;
@@ -122,7 +123,8 @@ static int do_udp_server_start(uint16_t port)
 	}
 	int reuseaddr = 1;
 
-	ret = setsockopt(proxy.sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(int));
+	ret = zsock_setsockopt(proxy.sock, SOL_SOCKET, SO_REUSEADDR,
+			       &reuseaddr, sizeof(int));
 	if (ret < 0) {
 		LOG_ERR("setsockopt(SO_REUSEADDR) error: %d", -errno);
 		ret = -errno;
@@ -149,7 +151,7 @@ static int do_udp_server_start(uint16_t port)
 
 exit_svr:
 	if (proxy.sock != INVALID_SOCKET) {
-		close(proxy.sock);
+		zsock_close(proxy.sock);
 		proxy.sock = INVALID_SOCKET;
 	}
 	rsp_send("\r\n#UDPSVR: %d,\"not started\"\r\n", ret);
@@ -174,11 +176,11 @@ static int do_udp_proxy_close(void)
 
 		/* Attempt to make the thread exit by closing the socket. */
 		if (proxy.sock != INVALID_SOCKET) {
-			close(proxy.sock);
+			zsock_close(proxy.sock);
 			proxy.sock = INVALID_SOCKET;
 		}
 	}
-	close(proxy.efd);
+	zsock_close(proxy.efd);
 	proxy.efd = INVALID_SOCKET;
 
 	return ret;
@@ -192,7 +194,8 @@ static int do_udp_client_connect(const char *url, uint16_t port)
 	const bool using_dtls = (proxy.sec_tag != INVALID_SEC_TAG);
 
 	/* Open socket */
-	ret = socket(proxy.family, SOCK_DGRAM, using_dtls ? IPPROTO_DTLS_1_2 : IPPROTO_UDP);
+	ret = zsock_socket(proxy.family, SOCK_DGRAM,
+			   using_dtls ? IPPROTO_DTLS_1_2 : IPPROTO_UDP);
 	if (ret < 0) {
 		LOG_ERR("socket() failed: %d", -errno);
 		return -errno;
@@ -209,7 +212,8 @@ static int do_udp_client_connect(const char *url, uint16_t port)
 		int tls_native = 1;
 
 		/* Must be the first socket option to set. */
-		ret = setsockopt(proxy.sock, SOL_TLS, TLS_NATIVE, &tls_native, sizeof(tls_native));
+		ret = zsock_setsockopt(proxy.sock, SOL_TLS, TLS_NATIVE,
+				       &tls_native, sizeof(tls_native));
 		if (ret) {
 			LOG_ERR("setsockopt(TLS_NATIVE) error: %d", -errno);
 			ret = errno;
@@ -218,8 +222,8 @@ static int do_udp_client_connect(const char *url, uint16_t port)
 #endif
 		sec_tag_t sec_tag_list[1] = { proxy.sec_tag };
 
-		ret = setsockopt(proxy.sock, SOL_TLS, TLS_SEC_TAG_LIST,
-				sec_tag_list, sizeof(sec_tag_t));
+		ret = zsock_setsockopt(proxy.sock, SOL_TLS, TLS_SEC_TAG_LIST,
+				       sec_tag_list, sizeof(sec_tag_t));
 		if (ret) {
 			LOG_ERR("set tag list failed: %d", -errno);
 			ret = -errno;
@@ -231,7 +235,8 @@ static int do_udp_client_connect(const char *url, uint16_t port)
 		 * irresponsive for too long when the connection to a server fails.
 		 */
 		timeout = (struct timeval){ .tv_sec = 10 };
-		ret = setsockopt(proxy.sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+		ret = zsock_setsockopt(proxy.sock, SOL_SOCKET, SO_SNDTIMEO,
+				       &timeout, sizeof(timeout));
 		if (ret) {
 			ret = -errno;
 			LOG_ERR("Setting timeout failed: %d", ret);
@@ -239,24 +244,26 @@ static int do_udp_client_connect(const char *url, uint16_t port)
 		}
 
 		if (using_cid) {
-			if (setsockopt(proxy.sock, SOL_TLS, TLS_DTLS_CID,
-							&proxy.dtls_cid, sizeof(proxy.dtls_cid))) {
+			if (zsock_setsockopt(proxy.sock, SOL_TLS, TLS_DTLS_CID,
+					     &proxy.dtls_cid, sizeof(proxy.dtls_cid))) {
 				ret = -errno;
 				LOG_WRN("Setting DTLS CID (%d) failed: %d", proxy.dtls_cid, ret);
 				goto cli_exit;
 			}
 		}
-		ret = setsockopt(proxy.sock, SOL_TLS, TLS_PEER_VERIFY, &proxy.peer_verify,
-				 sizeof(proxy.peer_verify));
+		ret = zsock_setsockopt(proxy.sock, SOL_TLS, TLS_PEER_VERIFY,
+				       &proxy.peer_verify, sizeof(proxy.peer_verify));
 		if (ret) {
 			LOG_ERR("setsockopt(TLS_PEER_VERIFY) error: %d", errno);
 			ret = -errno;
 			goto cli_exit;
 		}
 		if (proxy.hostname_verify) {
-			ret = setsockopt(proxy.sock, SOL_TLS, TLS_HOSTNAME, url, strlen(url));
+			ret = zsock_setsockopt(proxy.sock, SOL_TLS, TLS_HOSTNAME,
+					       url, strlen(url));
 		} else {
-			ret = setsockopt(proxy.sock, SOL_TLS, TLS_HOSTNAME, NULL, 0);
+			ret = zsock_setsockopt(proxy.sock, SOL_TLS, TLS_HOSTNAME,
+					       NULL, 0);
 		}
 		if (ret) {
 			LOG_ERR("setsockopt(TLS_HOSTNAME) error: %d", errno);
@@ -275,7 +282,7 @@ static int do_udp_client_connect(const char *url, uint16_t port)
 	const size_t size = (sa.sa_family == AF_INET) ?
 		sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
 
-	ret = connect(proxy.sock, &sa, size);
+	ret = zsock_connect(proxy.sock, &sa, size);
 	if (ret < 0) {
 		LOG_ERR("connect() failed: %d", -errno);
 		ret = -errno;
@@ -295,7 +302,7 @@ static int do_udp_client_connect(const char *url, uint16_t port)
 	return 0;
 
 cli_exit:
-	close(proxy.sock);
+	zsock_close(proxy.sock);
 	proxy.sock = INVALID_SOCKET;
 	rsp_send("\r\n#XUDPCLI: %d,\"not connected\"\r\n", ret);
 
@@ -310,10 +317,10 @@ static int do_udp_send(const uint8_t *data, int datalen)
 	while (offset < datalen) {
 		if (proxy.role == UDP_ROLE_SERVER) {
 			/* send to remembered remote */
-			ret = sendto(proxy.sock, data + offset, datalen - offset, 0,
-					(struct sockaddr *)&proxy.remote, sizeof(proxy.remote));
+			ret = zsock_sendto(proxy.sock, data + offset, datalen - offset, 0,
+					   (struct sockaddr *)&proxy.remote, sizeof(proxy.remote));
 		} else {
-			ret = send(proxy.sock, data + offset, datalen - offset, 0);
+			ret = zsock_send(proxy.sock, data + offset, datalen - offset, 0);
 		}
 		if (ret < 0) {
 			LOG_ERR("send()/sendto() failed: %d, sent: %d", -errno, offset);
@@ -340,10 +347,10 @@ static int do_udp_send_datamode(const uint8_t *data, int datalen)
 	while (offset < datalen) {
 		if (proxy.role == UDP_ROLE_SERVER) {
 			/* send to remembered remote */
-			ret = sendto(proxy.sock, data + offset, datalen - offset, 0,
-					(struct sockaddr *)&proxy.remote, sizeof(proxy.remote));
+			ret = zsock_sendto(proxy.sock, data + offset, datalen - offset, 0,
+					   (struct sockaddr *)&proxy.remote, sizeof(proxy.remote));
 		} else {
-			ret = send(proxy.sock, data + offset, datalen - offset, 0);
+			ret = zsock_send(proxy.sock, data + offset, datalen - offset, 0);
 		}
 		if (ret < 0) {
 			LOG_ERR("send()/sendto() failed: %d, sent: %d", -errno, offset);
@@ -365,7 +372,7 @@ static void udp_thread_func(void *p1, void *p2, void *p3)
 	};
 
 	int ret;
-	struct pollfd fds[FD_COUNT];
+	struct zsock_pollfd fds[FD_COUNT];
 	char peer_addr[INET6_ADDRSTRLEN];
 	uint16_t peer_port;
 
@@ -374,12 +381,13 @@ static void udp_thread_func(void *p1, void *p2, void *p3)
 	ARG_UNUSED(p3);
 
 	fds[SOCK].fd = proxy.sock;
-	fds[SOCK].events = POLLIN;
+	fds[SOCK].events = ZSOCK_POLLIN;
 	fds[EVENT_FD].fd = proxy.efd;
-	fds[EVENT_FD].events = POLLIN;
+	fds[EVENT_FD].events = ZSOCK_POLLIN;
 
 	do {
-		ret = poll(fds, ARRAY_SIZE(fds), MSEC_PER_SEC * CONFIG_SLM_UDP_POLL_TIME);
+		ret = zsock_poll(fds, ARRAY_SIZE(fds),
+				 MSEC_PER_SEC * CONFIG_SLM_UDP_POLL_TIME);
 		if (ret < 0) {  /* IO error */
 			LOG_WRN("poll() error: %d", ret);
 			continue;
@@ -389,18 +397,21 @@ static void udp_thread_func(void *p1, void *p2, void *p3)
 		}
 		LOG_DBG("sock events 0x%08x", fds[SOCK].revents);
 		LOG_DBG("efd events 0x%08x", fds[EVENT_FD].revents);
-		if ((fds[SOCK].revents & POLLIN) != 0) {
+		if ((fds[SOCK].revents & ZSOCK_POLLIN) != 0) {
 			if (proxy.role == UDP_ROLE_SERVER) {
 				/* Store the remote to send responses with the #XUDPSEND command. */
 				unsigned int size = sizeof(proxy.remote);
 
 				memset(&proxy.remote, 0, sizeof(proxy.remote));
-				ret = recvfrom(proxy.sock, (void *)slm_data_buf,
-					       sizeof(slm_data_buf), MSG_DONTWAIT,
-					       (struct sockaddr *)&proxy.remote, &size);
+				ret = zsock_recvfrom(proxy.sock,
+						     (void *)slm_data_buf,
+						     sizeof(slm_data_buf),
+						     ZSOCK_MSG_DONTWAIT,
+						     (struct sockaddr *)&proxy.remote,
+						     &size);
 			} else {
-				ret = recv(proxy.sock, (void *)slm_data_buf, sizeof(slm_data_buf),
-					MSG_DONTWAIT);
+				ret = zsock_recv(proxy.sock, (void *)slm_data_buf,
+						 sizeof(slm_data_buf), ZSOCK_MSG_DONTWAIT);
 			}
 			if (ret < 0 && errno != EAGAIN) {
 				LOG_WRN("recv() error: %d", -errno);
@@ -414,14 +425,15 @@ static void udp_thread_func(void *p1, void *p2, void *p3)
 				data_send(slm_data_buf, ret);
 			}
 		}
-		if ((fds[SOCK].revents & POLLERR) != 0) {
+		if ((fds[SOCK].revents & ZSOCK_POLLERR) != 0) {
 			int value;
 			socklen_t len = sizeof(int);
 
-			ret = getsockopt(proxy.sock, SOL_SOCKET, SO_ERROR, &value, &len);
+			ret = zsock_getsockopt(proxy.sock, SOL_SOCKET, SO_ERROR,
+					       &value, &len);
 			if (ret) {
-				LOG_ERR("%d : getsockopt(SO_ERROR) error: %d", fds[SOCK].fd,
-					-errno);
+				LOG_ERR("%d : zsock_getsockopt(SO_ERROR) error: %d",
+					fds[SOCK].fd, -errno);
 				ret = -EIO;
 				break;
 			}
@@ -437,12 +449,12 @@ static void udp_thread_func(void *p1, void *p2, void *p3)
 				break;
 			}
 		}
-		if ((fds[SOCK].revents & POLLNVAL) != 0) {
+		if ((fds[SOCK].revents & ZSOCK_POLLNVAL) != 0) {
 			LOG_WRN("%d : POLLNVAL", fds[SOCK].fd);
 			ret = -ENETDOWN;
 			break;
 		}
-		if ((fds[SOCK].revents & POLLHUP) != 0) {
+		if ((fds[SOCK].revents & ZSOCK_POLLHUP) != 0) {
 			if (proxy.role == UDP_ROLE_SERVER && proxy.sec_tag != INVALID_SEC_TAG) {
 				util_get_peer_addr((struct sockaddr *)&proxy.remote, peer_addr,
 						   &peer_port);
@@ -456,19 +468,19 @@ static void udp_thread_func(void *p1, void *p2, void *p3)
 			}
 		}
 		/* Events from AT-commands. */
-		if ((fds[EVENT_FD].revents & POLLIN) != 0) {
+		if ((fds[EVENT_FD].revents & ZSOCK_POLLIN) != 0) {
 			LOG_DBG("Close proxy");
 			ret = 0;
 			break;
 		}
-		if (fds[EVENT_FD].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+		if (fds[EVENT_FD].revents & (ZSOCK_POLLERR | ZSOCK_POLLHUP | ZSOCK_POLLNVAL)) {
 			LOG_ERR("efd: unexpected event: %d", fds[EVENT_FD].revents);
 			break;
 		}
 
 	} while (true);
 
-	close(proxy.sock);
+	zsock_close(proxy.sock);
 	proxy.sock = INVALID_SOCKET;
 
 	if (in_datamode()) {
