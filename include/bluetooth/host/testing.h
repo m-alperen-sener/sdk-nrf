@@ -9,8 +9,8 @@
  *  The interfaces in this file are internal and not stable.
  */
 
-#ifndef ZEPHYR_INCLUDE_BLUETOOTH_TESTING_H_
-#define ZEPHYR_INCLUDE_BLUETOOTH_TESTING_H_
+#ifndef BT_HOST_TESTING_H_
+#define BT_HOST_TESTING_H_
 
 #include <zephyr/net_buf.h>
 
@@ -42,4 +42,4 @@ void bt_testing_trace_ext_adv_reassembly_timeout(void);
  */
 void bt_testing_trace_ext_adv_reassembly_complete(void);
 
-#endif /* ZEPHYR_INCLUDE_BLUETOOTH_TESTING_H_ */
+#endif /* BT_HOST_TESTING_H_ */
