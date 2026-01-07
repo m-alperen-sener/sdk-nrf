@@ -6,7 +6,8 @@
 # AUX_CHAIN_IND PDUs, producing fragmented HCI ext adv reports.
 # Tests chain-aware discard logic and the host reassembly timer.
 
-source ${ZEPHYR_BASE}/tests/bsim/sh_common.source
+: "${NRF_BASE:?NRF_BASE must be defined}"
+source ${NRF_BASE}/tests/bsim/sh_common.source
 
 # This variant only runs on nRF5340 as it uses the IPC driver with chain-aware discard logic.
 if [ "${BOARD_TS}" != "nrf5340bsim_nrf5340_cpuapp" ]; then
