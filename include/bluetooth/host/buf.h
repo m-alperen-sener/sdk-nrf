@@ -203,6 +203,7 @@ struct net_buf *bt_buf_get_rx(enum bt_buf_type type, k_timeout_t timeout);
  *
  * @isr_ok
  *
+ * @note Safe to call from thread or ISR context; keep the handler short and non-blocking.
  * @param type_mask A bit mask of buffer types that have been freed.
  */
 typedef void (*bt_buf_rx_freed_cb_t)(enum bt_buf_type type_mask);
@@ -213,6 +214,7 @@ typedef void (*bt_buf_rx_freed_cb_t)(enum bt_buf_type type_mask);
  *
  * @isr_ok
  *
+ * @note Safe to call from thread or ISR context; keep the handler short and non-blocking.
  * @param cb Callback to notify about freed buffer in the incoming data pool. If NULL, the callback
  *           is disabled.
  */
