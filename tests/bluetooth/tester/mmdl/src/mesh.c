@@ -11,9 +11,11 @@
 #include <assert.h>
 #include <errno.h>
 #include <zephyr/bluetooth/mesh.h>
+#include <zephyr/bluetooth/mesh/access.h>
 #include <zephyr/bluetooth/mesh/cfg.h>
 #include <zephyr/sys/byteorder.h>
 #include <app_keys.h>
+#include "access.h"
 
 #define LOG_LEVEL CONFIG_BT_MESH_LOG_LEVEL
 #include "zephyr/logging/log.h"
@@ -42,13 +44,69 @@ static uint8_t input_size;
 static uint8_t dev_uuid[16];
 static uint8_t static_auth[16];
 
-/* Model send data */
-struct model_data model_bound[MODEL_BOUNDS_MAX];
-
 struct net_ctx net = {
 	.local = BT_MESH_ADDR_UNASSIGNED,
 	.dst = BT_MESH_ADDR_UNASSIGNED,
 };
+
+static void tester_model_pub_set(const struct bt_mesh_model *model, uint16_t addr,
+				 uint16_t key_idx)
+{
+	if (!model->pub || model->pub->update) {
+		return;
+	}
+
+	model->pub->addr = addr;
+	model->pub->key = key_idx;
+	model->pub->ttl = BT_MESH_TTL_DEFAULT;
+	model->pub->cred = 0U;
+	model->pub->period = 0U;
+	model->pub->retransmit = 0U;
+	model->pub->count = 0U;
+
+	if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
+		bt_mesh_model_pub_store(model);
+	}
+}
+
+static void tester_model_pub_clear(const struct bt_mesh_model *model)
+{
+	if (!model->pub || model->pub->update ||
+	    model->pub->addr == BT_MESH_ADDR_UNASSIGNED) {
+		return;
+	}
+
+	model->pub->addr = BT_MESH_ADDR_UNASSIGNED;
+	model->pub->key = 0U;
+	model->pub->ttl = 0U;
+	model->pub->period = 0U;
+	model->pub->retransmit = 0U;
+	model->pub->count = 0U;
+
+	if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
+		bt_mesh_model_pub_store(model);
+	}
+}
+
+static void tester_net_ctx_restore(void)
+{
+	uint16_t primary = bt_mesh_primary_addr();
+
+	if (primary == BT_MESH_ADDR_UNASSIGNED) {
+		return;
+	}
+
+	addr = primary;
+	net.local = primary;
+	net.net_idx = 0;
+}
+
+static void tester_net_ctx_clear(void)
+{
+	net.local = BT_MESH_ADDR_UNASSIGNED;
+	net.dst = BT_MESH_ADDR_UNASSIGNED;
+	net.net_idx = 0;
+}
 
 static void supported_commands(uint8_t *data, uint16_t len)
 {
@@ -276,6 +334,8 @@ static void start(uint8_t *data, uint16_t len)
 				status = BTP_STATUS_FAILED;
 			}
 		}
+	} else {
+		tester_net_ctx_restore();
 	}
 
 	tester_rsp(BTP_SERVICE_ID_MESH, MESH_START, CONTROLLER_INDEX,
@@ -288,6 +348,7 @@ static void reset(uint8_t *data, uint16_t len)
 
 	addr = 0U;
 
+	tester_net_ctx_clear();
 	bt_mesh_reset();
 
 	tester_rsp(BTP_SERVICE_ID_MESH, MESH_RESET, CONTROLLER_INDEX,
@@ -348,43 +409,19 @@ void net_recv_ev(uint8_t ttl, uint8_t ctl, uint16_t src, uint16_t dst, const voi
 static void model_bound_cb(uint16_t addr, const struct bt_mesh_model *model,
 			   uint16_t key_idx)
 {
-	int i;
-
 	LOG_DBG("remote addr 0x%04x key_idx 0x%04x model %p",
 		addr, key_idx, (void *)model);
 
-	for (i = 0; i < ARRAY_SIZE(model_bound); i++) {
-		if (!model_bound[i].model) {
-			model_bound[i].model = model;
-			model_bound[i].addr = addr;
-			model_bound[i].appkey_idx = key_idx;
-
-			return;
-		}
-	}
-
-	LOG_ERR("model_bound is full");
+	tester_model_pub_set(model, addr, key_idx);
 }
 
 static void model_unbound_cb(uint16_t addr, const struct bt_mesh_model *model,
 			     uint16_t key_idx)
 {
-	int i;
-
 	LOG_DBG("remote addr 0x%04x key_idx 0x%04x model %p",
 		addr, key_idx, (void *)model);
 
-	for (i = 0; i < ARRAY_SIZE(model_bound); i++) {
-		if (model_bound[i].model == model) {
-			model_bound[i].model = NULL;
-			model_bound[i].addr = 0x0000;
-			model_bound[i].appkey_idx = BT_MESH_KEY_UNUSED;
-
-			return;
-		}
-	}
-
-	LOG_INF("model not found");
+	tester_model_pub_clear(model);
 }
 
 static void invalid_bearer_cb(uint8_t opcode)
